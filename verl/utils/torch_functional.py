@@ -30,12 +30,13 @@ from transformers import PreTrainedTokenizer
 
 from verl.utils.device import get_device_name, get_torch_device
 
-try:
-    from flash_attn.ops.triton.cross_entropy import cross_entropy_loss
+# try:
+#     from flash_attn.ops.triton.cross_entropy import cross_entropy_loss
 
-    FLAH_ATTN_CROSS_ENTROPY_LOSS_AVAILABLE = True
-except ImportError:
-    FLAH_ATTN_CROSS_ENTROPY_LOSS_AVAILABLE = False
+#     FLAH_ATTN_CROSS_ENTROPY_LOSS_AVAILABLE = True
+# except ImportError:
+# TODO(suo): triton seems not to be working. Try installing gcc in the conda image
+FLAH_ATTN_CROSS_ENTROPY_LOSS_AVAILABLE = False
 
 
 try:
