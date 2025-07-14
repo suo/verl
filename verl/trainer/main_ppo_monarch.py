@@ -21,12 +21,9 @@ import socket
 import hydra
 from omegaconf import OmegaConf
 
-from verl.experimental.dataset.sampler import AbstractSampler
+from verl.trainer.main_ppo import create_rl_dataset, create_rl_sampler
 from verl.trainer.ppo.monarch_trainer import MonarchPPOTrainer
 from verl.trainer.ppo.reward import load_reward_manager
-from verl.utils.import_utils import load_extern_type
-
-from verl.trainer.main_ppo import create_rl_dataset, create_rl_sampler
 
 
 @hydra.main(config_path="config", config_name="ppo_trainer", version_base=None)
@@ -113,22 +110,22 @@ class TaskRunner:
             monarch_worker_group_cls = MonarchWorkerGroup
 
         elif config.actor_rollout_ref.actor.strategy == "megatron":
-            raise NotImplementedError
-            # assert config.actor_rollout_ref.actor.strategy == config.critic.strategy
-            # from verl.single_controller.ray.megatron import NVMegatronRayWorkerGroup
-            # from verl.workers.megatron_workers import (
-            #     ActorRolloutRefWorker,
-            #     AsyncActorRolloutRefWorker,
-            #     CriticWorker,
-            # )
+            assert config.actor_rollout_ref.actor.strategy == config.critic.strategy
+            from verl.single_controller.monarch.megatron import (
+                NVMegatronMonarchWorkerGroup,
+            )
+            from verl.workers.megatron_workers import (
+                ActorRolloutRefWorker,
+                AsyncActorRolloutRefWorker,
+                CriticWorker,
+            )
 
-            # actor_rollout_cls = (
-            #     AsyncActorRolloutRefWorker
-            #     if config.actor_rollout_ref.rollout.mode == "async"
-            #     else ActorRolloutRefWorker
-            # )
-            # ray_worker_group_cls = NVMegatronRayWorkerGroup
-
+            actor_rollout_cls = (
+                AsyncActorRolloutRefWorker
+                if config.actor_rollout_ref.rollout.mode == "async"
+                else ActorRolloutRefWorker
+            )
+            monarch_worker_group_cls = NVMegatronMonarchWorkerGroup
         else:
             raise NotImplementedError
 

@@ -1,12 +1,11 @@
+import inspect
 import os
 import socket
-import inspect
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from monarch._src.actor.actor_mesh import EndpointProperty
 from monarch.actor import Actor, endpoint, Future, MonarchContext, port, ProcMesh, send
 from verl.protocol import _padding_size_key, DataProto
-from verl.utils.device import get_torch_device, get_visible_devices_keyword
 
 from verl.single_controller.base import Worker
 
@@ -23,6 +22,7 @@ from verl.single_controller.base.worker_group import (
     ResourcePool,
     WorkerGroup,
 )
+from verl.utils.device import get_torch_device, get_visible_devices_keyword
 
 
 # Define a get() with similar semantics as ray.get()
@@ -505,6 +505,20 @@ def _bind_workers_method_to_parent(cls, key, user_defined_cls):
                 raise ValueError(f"Fail to set method_name {method_name}") from e
 
 
+def _determine_fsdp_megatron_base_class(mros: List):
+    """
+    - megatron: base class should be MegatronWorker
+    - fsdp: base class should be Worker
+    """
+    for cls in mros[0]:
+        if cls.__name__ == "MegatronWorker":
+            from verl.single_controller.monarch.megatron import MegatronMonarchWorker
+            return MegatronMonarchWorker
+        if cls.__name__ == "Worker":
+            return MonarchWorker
+    raise ValueError(f"Cannot determine base class for {mros}")
+
+
 def create_colocated_worker_cls(class_dict: dict[str, MonarchClassWithInitArgs]):
     """
     This function should return a class instance that delegates the calls to every
@@ -514,7 +528,11 @@ def create_colocated_worker_cls(class_dict: dict[str, MonarchClassWithInitArgs])
     init_args_dict = {}
 
     # For Monarch, we'll use MonarchWorker as the base class
-    worker_cls = MonarchWorker
+    worker_cls = _determine_fsdp_megatron_base_class(
+        [cls.cls.__mro__ for cls in class_dict.values()]
+    )
+    assert issubclass(worker_cls, Worker), f"worker_cls {worker_cls} should be a subclass of Worker"
+    print(f"colocated worker base class {worker_cls}")
 
     for key, cls in class_dict.items():
         cls_dict[key] = cls.cls

@@ -560,6 +560,8 @@ class RayWorkerGroup(WorkerGroup):
         Returns:
             Remote object reference to the method execution
         """
+        print(f"{self.fused_worker_used=}")
+        print(f"getattr({worker=}, {method_name=}")
         if self.fused_worker_used and method_name not in self.method_names:
             remote_call = getattr(worker, self.fused_worker_execute_fn_name)
             return remote_call.remote(f"{self.sub_cls_name}_fwmn_{method_name}", *args, **kwargs)
@@ -701,6 +703,7 @@ def _bind_workers_method_to_parent(cls, key, user_defined_cls):
             continue
 
         if hasattr(method, MAGIC_ATTR):
+            print(f"bind method {method_name} to class {cls} with key {key}")
 
             def generate_function(name, key=key):
                 def func(self, *args, **kwargs):
